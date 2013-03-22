@@ -1,34 +1,36 @@
-!!! 5
-html
-  head
-    meta(name='description', content='Raphael arc testing')
-    meta(charset='utf-8')
-    script(src='http://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js')
-    script(src='http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js')
-    title Cooking Ratios
-    style
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="description" content="Raphael arc testing">
+    <meta charset="utf-8">
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/raphael/2.1.0/raphael-min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>
+    <title>Cooking Ratios</title>
+    <style>
       #canvas {
         background: #F8F8F8;
         /* width: 700px;
         height: 700px; */
       }
-  body
-    #canvas
-
-  script
+    </style>
+  </head>
+  <body>
+    <div id="canvas"></div>
+  </body>
+  <script>
     var circle = {
       // Radius of the circle
       "radius": 100,
-
+      
       // Background color of the circle (optional)
       "background": "#f0f0f0",
-
+      
       // Radius of the inner part of the circle
       "donutRadius": 10,
-
+      
       // How many levels this circle will have
       "numLevels": 2,
-
+      
       "slices": [
         //- {
         //-   // Percentage of the 
@@ -49,7 +51,7 @@ html
         },
       ]
     };
-
+    
     //- var vis = d3.select("body").append("svg");
     //- var arc = d3.svg.arc()
     //-     .innerRadius(0)
@@ -57,53 +59,53 @@ html
     //-     //- .startAngle(45 * (pi/180)) //converting from degs to radians
     //-     .startAngle( 1 )
     //-     .endAngle(2); //just radians
-
+    
     //- var path = vis.append("path")
     //-   .attr("d", arc)
     //-   .attr("id", "path1")
     //-   .attr("fill","#ccf")
     //-   .attr("transform", "translate(100,100)");
-
+    
     drawRatios(circle);
-
-
+    
+    
     function drawRatios(circle) {
       var paper = Raphael("canvas", circle.radius * 2, circle.radius * 2);
-
+      
       var center = { x: circle.radius, y: circle.radius };
-
+      
       var master_stroke_width = 24;
-
+      
       // Function for creating arcs
       paper.customAttributes.arc = function(xloc, yloc, start, value, total, R) {
         // Start at [start] percentage around the circle
         if (start >= 0) {
-          
+        
         }
-
+        
         var alpha = 360 / total * value,      // Convert the arc percentage into degrees
             a = (90 - alpha) * Math.PI / 180, // Convert those degrees to radians?
             x = xloc + R * Math.cos(a),
             y = yloc - R * Math.sin(a),
             path;
-
+            
         console.log("R", R);
         console.log("alpha", alpha);
         console.log("a", a);
         console.log("x", x);
         console.log("y", y);
-
+        
         if (total == value) {
             path = [
                 ["M", xloc, yloc - R],
-
+                
                 //(   rx  ry  x-axis-rotation   large-arc-flag  sweep-flag             x          y)+
                 ["A",  R,  R,               0,               1,          1,  xloc - 0.01,  yloc - R]
             ];
         } else {
             path = [
                 ["M", xloc, yloc - R],
-
+                
                 //(   rx  ry  x-axis-rotation   large-arc-flag  sweep-flag   x   y)+
                 ["A",  R,  R,               20,  +(alpha > 180),         1,  x,  y]
             ];
@@ -112,21 +114,21 @@ html
             path: path
         };
       };
-
+      
       if (typeof(circle.background) != "undefined" && circle.background != undefined) {
         var backCircle = paper.circle(center.x, center.y, circle.radius).attr({
             "stroke": false,
             "fill": circle.background
         });
       }
-
-
+      
+      
       for (var i in circle.slices) {
         var slice = circle.slices[i];
-
+        
         // Figure the stroke width 
         var stroke_width = master_stroke_width;
-
+        
         var slice = paper.path().attr({
           "stroke": slice.stroke,
           "stroke-width": stroke_width,
@@ -134,3 +136,5 @@ html
         });
       }
     }
+  </script>
+</html>
