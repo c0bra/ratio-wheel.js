@@ -7,20 +7,28 @@
     <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.0.8/d3.min.js"></script>
     <title>Cooking Ratios</title>
     <style>
-      #canvas {
+      /*#canvas {
         background: #F8F8F8;
-        /* width: 700px;
-        height: 700px; */
+        width: 700px;
+        height: 700px;
+      }*/
+      body {
+        font: 10px sans-serif;
+      }
+      
+      .arc path {
+        stroke: #fff;
       }
     </style>
   </head>
   <body>
-    <div id="canvas"></div>
   </body>
   <script>
+    var arcFont = 'Arial';
+    
     var circle = {
       // Radius of the circle
-      "radius": 100,
+      "radius": 200,
       
       // Background color of the circle (optional)
       "background": "#f0f0f0",
@@ -32,17 +40,19 @@
       "numLevels": 2,
       
       "slices": [
-        //- {
-        //-   // Percentage of the 
-        //-   "percentage": 20,
-        //-   "stroke": "#ccc",
-        //-   "levels": [
-        //-     { "text": "Level one" },
-        //-     { "text": "Level two" }
-        //-   ]
-        //- },
         {
-          "percentage": 75,
+          // Percentage of the 
+          "text": "Fattiness",
+          "percentage": 7,
+          "stroke": "#ccc",
+          "levels": [
+            { "text": "Level one" },
+            { "text": "Level two" }
+          ]
+        },
+        {
+          "text": "Bread",
+          "percentage": 92,
           "stroke": "#ccccff",
           "levels": [
             { "text": "Level one" },
@@ -52,89 +62,213 @@
       ]
     };
     
-    //- var vis = d3.select("body").append("svg");
-    //- var arc = d3.svg.arc()
-    //-     .innerRadius(0)
-    //-     .outerRadius(100)
-    //-     //- .startAngle(45 * (pi/180)) //converting from degs to radians
-    //-     .startAngle( 1 )
-    //-     .endAngle(2); //just radians
+    function dist(first, second) {
+      return Math.sqrt( Math.pow(first[0] - second[0], 2) + Math.pow(first[1] - second[1], 2) );
+    }
     
-    //- var path = vis.append("path")
-    //-   .attr("d", arc)
-    //-   .attr("id", "path1")
-    //-   .attr("fill","#ccf")
-    //-   .attr("transform", "translate(100,100)");
+    //I usually prototype directly on string in m jquery version
+    //String.prototype.width = function(svg, string, font, aclass) {
+    d3.stringWidth = function(svg, string, size, font, aclass) {
+      var f = font || 'Arial';
+      var size = size+'px' || '12px';
+      
+      var fontAndSize = size+' '+font;
+      
+      var text = svg.append("svg:text")
+          .attr('class', aclass)
+          .attr("x", 0)
+          .attr("y", 0)
+          .style("font", fontAndSize)
+          .style("opacity", 0)
+          .text(string);
+          
+      return text.node().getBBox().width;
+    };
     
-    drawRatios(circle);
+    d3.arcLength = function(svgArc, arc) {
+      var startDeg = (arc.startAngle * 180 / Math.PI);
+      var endDeg = (arc.endAngle * 180 / Math.PI);
+      
+      var centroid = svgArc.centroid(arc);
+      
+      var pixelDistance = dist(centroid, [0,0]);
+    };
     
-    
-    function drawRatios(circle) {
-      var paper = Raphael("canvas", circle.radius * 2, circle.radius * 2);
+    d3.findFontSize = function(svg, arcLength, text, startSize, font) {
+      //- Get the width of <text> in font <font> at size <startSize>px
+      var width = d3.stringWidth(svg, text, startSize, font);
       
-      var center = { x: circle.radius, y: circle.radius };
-      
-      var master_stroke_width = 24;
-      
-      // Function for creating arcs
-      paper.customAttributes.arc = function(xloc, yloc, start, value, total, R) {
-        // Start at [start] percentage around the circle
-        if (start >= 0) {
-        
-        }
-        
-        var alpha = 360 / total * value,      // Convert the arc percentage into degrees
-            a = (90 - alpha) * Math.PI / 180, // Convert those degrees to radians?
-            x = xloc + R * Math.cos(a),
-            y = yloc - R * Math.sin(a),
-            path;
-            
-        console.log("R", R);
-        console.log("alpha", alpha);
-        console.log("a", a);
-        console.log("x", x);
-        console.log("y", y);
-        
-        if (total == value) {
-            path = [
-                ["M", xloc, yloc - R],
-                
-                //(   rx  ry  x-axis-rotation   large-arc-flag  sweep-flag             x          y)+
-                ["A",  R,  R,               0,               1,          1,  xloc - 0.01,  yloc - R]
-            ];
-        } else {
-            path = [
-                ["M", xloc, yloc - R],
-                
-                //(   rx  ry  x-axis-rotation   large-arc-flag  sweep-flag   x   y)+
-                ["A",  R,  R,               20,  +(alpha > 180),         1,  x,  y]
-            ];
-        }
-        return {
-            path: path
-        };
-      };
-      
-      if (typeof(circle.background) != "undefined" && circle.background != undefined) {
-        var backCircle = paper.circle(center.x, center.y, circle.radius).attr({
-            "stroke": false,
-            "fill": circle.background
-        });
+      //- If the width of the text would be longer than the arc, lower the font size recursively until it's small enough
+      if (width >= arcLength) {
+        return d3.findFontSize(svg, arcLength, text, startSize-1, font);
       }
-      
-      
-      for (var i in circle.slices) {
-        var slice = circle.slices[i];
-        
-        // Figure the stroke width 
-        var stroke_width = master_stroke_width;
-        
-        var slice = paper.path().attr({
-          "stroke": slice.stroke,
-          "stroke-width": stroke_width,
-          arc: [ center.x, center.y, 20, slice.percentage, 100, circle.radius - (stroke_width / 2) ]
-        });
+      else {
+        return startSize;
       }
+    };
+    
+    drawCircle(circle);
+    
+    function drawCircle(circle) {
+    
+      var width = circle.radius * 2,
+      height = circle.radius * 2,
+      radius = Math.min(width, height) / 2;
+      
+      var color = d3.scale.ordinal()
+          .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+          
+      var arcHeight = 30;
+      
+      var arc = d3.svg.arc()
+        .outerRadius(radius - 0)
+        .innerRadius(radius - arcHeight);
+        
+      var arcTwo = d3.svg.arc()
+        .outerRadius(radius - arcHeight)
+        .innerRadius(radius - arcHeight * 2);
+        
+        
+      var pie = d3.layout.pie()
+        .sort(null)
+        .value(function(d) {
+          //- console.log("d", d[1]);
+          return d.percentage;
+        });
+        
+      var svg = d3.select("body").append("svg")
+          .attr("width", width)
+          .attr("height", height)
+          .append("g")
+          .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+          
+      //- Generate unique ids for each slice
+      circle.slices.forEach(function(slice, i){
+        //- slice.percentage = +slice.percentage;
+        //- data.push( [i, slice.percentage ] );
+        slice.id = 'arc' + i;
+      });
+      
+      var g = svg.selectAll(".arc")
+        .data(pie(circle.slices))
+        .enter().append("g")
+        .attr("class", "arc");
+        
+      var arcPath = g.append("path")
+        .attr("d", arc)
+        .attr("id", function(d, i) {
+          return d.data.id
+        })
+        .style("fill", function(d) {
+          var c = color(d.value);
+          //- var c = d.data.stroke;
+          //- console.log("color", c);
+          //- console.log("d", d);
+          return c;
+        });
+        
+      //- g.append("path")
+      //-   .attr("d", arcTwo)
+      //-   .style("fill", function(d) {
+      //-     var c = color(d.value + 1);
+      //-     return c;
+      //-   });
+      
+      //- g.append("text")
+      //-   .attr("transform", function(d) {
+      //-     console.log("transform-d", d);
+      //-     return "translate(" + arc.centroid(d) + ")";
+      //-   })
+      //-   .attr("dy", ".35em")
+      //-   .attr("fill", "#fff")
+      //-   .style("text-anchor", "middle")
+      //-   .text(function(d) {
+      //-     //- console.log("TEXT", d);
+      //-     return d.data.text;
+      //-   });
+      
+      //- console.log("g", g);
+      
+      g.append("text")
+        //- .attr("transform", function(d) {
+        //-   console.log("transform-d", d);
+        
+        //-   var middleAngle = (d.endAngle - d.startAngle) / 2;
+        //-   //- console.log("endAngle", d.endAngle);
+        //-   //- console.log("startAngle", d.startAngle);
+        //-   //- console.log("middleAngle", middleAngle);
+        
+        //-   //- return "translate(" + arc.centroid(d) + ") rotate(0)";
+        //-   //- return "translate(10, " + arcHeight / 2 +")";
+        //- })
+        .attr("dx", function(d) {
+          //- var len = d3.arcLength(arc, d);
+          
+          //- console.log("centroid", arc.centroid(d));
+          
+          //- var middleAngle = (d.endAngle - d.startAngle);
+          var start = (d.startAngle * 180 / Math.PI);
+          var end = (d.endAngle * 180 / Math.PI);
+          
+          //- var length = (end - start) * circle.radius / 180;
+          var length = Math.abs((end - start)) / 360 * 2 * Math.PI * circle.radius;
+          //- console.log("arc-length", length);
+          
+          //- var middleAngle = (d.endAngle * 180 / Math.PI) - (d.startAngle * 180 / Math.PI) / 2;
+          var middle = ((end - start) / 2) + start;
+          //- var degrees = middleAngle * 180 / Math.PI;
+          var degrees = middle;
+          //- console.log("startAngle", start);
+          //- console.log("endAngle", end);
+          //- console.log("middleAngle", middle);
+          //- console.log("middle", degrees);
+          
+          var text = d.data.text;
+          
+          var fontSize = d3.findFontSize(svg, length, text, arcHeight, arcFont);
+          var width = d3.stringWidth(svg, text, fontSize, arcFont);
+          
+          //- console.log("width", width);
+          
+          return length / 2 - width / 2;
+        })
+        .attr("dy", arcHeight-5)
+        .attr("fill", "#000")
+        .style("font-size", function(d) {
+          var text = d.data.text;
+          
+          //- Turn the start and end angles from radians into degrees
+          var start = (d.startAngle * 180 / Math.PI);
+          var end = (d.endAngle * 180 / Math.PI);
+          
+          //- Get the length of the arc
+          var length = Math.abs((end - start)) / 360 * 2 * Math.PI * circle.radius;
+          
+          //- console.log(svg, length, text, arcHeight, arcFont);
+          //                            (svg, arcLength, text, startSize, font)
+          var fontSize = d3.findFontSize(svg, length, text, arcHeight, arcFont);
+          
+          return fontSize + 'px';
+        })
+        //- .style("text-anchor", "middle")
+        .append("textPath")
+        .attr("xlink:href", function(d) {
+          var id  = '#' + d.data.id;
+          //- console.log("id", id);
+          return id;
+        })
+        .text(function(d) {
+          return d.data.text;
+        });
+        
+      // Draw the text
+      //- g[0].forEach(function(myArc, i) {
+      
+      //-   //- console.log("arc", myArc.__data__);
+      //-   var d = myArc.__data__;
+      
+      //-   //- console.log("width", width);
+      //- });
     }
   </script>
 </html>
